@@ -1,35 +1,37 @@
-/*
- * Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT license.
- * See LICENSE in the project root for license information.
- */
+const duplicateWorkbook = () => {
+  Office.context.document.getFileAsync(Office.FileType.Compressed, async ({ value: fileHandle }) => {
+    const buf = new Uint8Array(fileHandle.size);
+    let offset = 0;
 
-/* global console, document, Excel, Office */
+    for (let i = 0; i < fileHandle.sliceCount; i++) {
+      await new Promise<void>((resolve) => {
+        fileHandle.getSliceAsync(i, ({ value: slice }) => {
+          buf.set(slice.data as Array<number>, offset);
+          offset += slice.size;
+          resolve();
+        });
+      });
+    }
 
-// The initialize function must be run each time a new page is loaded
-Office.onReady(() => {
-  document.getElementById("sideload-msg").style.display = "none";
-  document.getElementById("app-body").style.display = "flex";
-  document.getElementById("run").onclick = run;
-});
+    const fileBinary = new Blob([buf]);
 
-export async function run() {
-  try {
-    await Excel.run(async (context) => {
-      /**
-       * Insert your Excel code here
-       */
-      const range = context.workbook.getSelectedRange();
-
-      // Read the range address
-      range.load("address");
-
-      // Update the fill color
-      range.format.fill.color = "yellow";
-
-      await context.sync();
-      console.log(`The range address was ${range.address}.`);
+    const workbookB64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve(reader.result as string);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(fileBinary);
     });
-  } catch (error) {
-    console.error(error);
-  }
-}
+
+    const dataOffset = workbookB64.indexOf("base64,");
+    const b64Offset = workbookB64.substring(dataOffset + "base64,".length);
+    fileHandle.closeAsync();
+
+    await Excel.createWorkbook(b64Offset);
+  });
+};
+
+Office.onReady(() => {
+  document.getElementById("duplicate-btn").onclick = duplicateWorkbook;
+});
