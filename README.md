@@ -1,6 +1,6 @@
 # Duplicate Office.js workbook bug reproduction
 
-Reproduction for bug #####.
+Reproduction for https://github.com/OfficeDev/office-js/issues/5408.
 
 To reproduce:
 
