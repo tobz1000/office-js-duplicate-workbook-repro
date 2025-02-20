@@ -34,4 +34,10 @@ const duplicateWorkbook = () => {
 
 Office.onReady(() => {
   document.getElementById("duplicate-btn").onclick = duplicateWorkbook;
+
+  Excel.run(async (context) => {
+    context.workbook.worksheets.onCalculated.add((ev) => {
+      console.info("onCalculated", ev);
+    });
+  });
 });
